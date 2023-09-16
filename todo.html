@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
+    <title>To-Do List</title>
+    <style>
+        .task-list {
+            margin-top: 20px;
+        }
+
+        .task {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border: 1px solid #ccc;
+            padding: 10px;
+            margin-bottom: 5px;
+            background-color: #fff;
+        }
+
+        .task.completed {
+            background-color: #e0e0e0;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1 class="mt-5">To-Do List</h1>
+        <div class="input-group mt-3">
+            <input type="text" id="taskInput" class="form-control" placeholder="Add a new task">
+            <textarea id="descriptionInput" class="form-control mt-2" placeholder="Task description"></textarea>
+            <div class="input-group-append">
+                <button onclick="addTask()" class="btn btn-primary">Add</button>
+            </div>
+        </div>
+        <div class="task-list mt-3">
+            <h3>Remaining Tasks</h3>
+            <ul id="remainingTasks"></ul>
+            <h3>Done Tasks</h3>
+            <ul id="completedTasks"></ul>
+        </div>
+    </div>
+
+    <script>
+        function addTask() {
+            const taskText = document.getElementById("taskInput").value;
+            const taskDescription = document.getElementById("descriptionInput").value;
+            if (!taskText) return;
+
+            const taskList = document.getElementById("remainingTasks");
+            const taskItem = document.createElement("li");
+            taskItem.className = "task";
+            taskItem.innerHTML = `
+                <div>
+                    <span>${taskText}</span>
+                    <p>${taskDescription}</p>
+                </div>
+                <div>
+                    <button onclick="markAsDone(this)" class="btn btn-success">✓</button>
+                    <button onclick="deleteTask(this)" class="btn btn-danger">×</button>
+                </div>
+            `;
+            taskList.appendChild(taskItem);
+
+            // Save the task to localStorage
+            saveTask({ text: taskText, description: taskDescription, completed: false });
+
+            document.getElementById("taskInput").value = "";
+            document.getElementById("descriptionInput").value = "";
+        }
+
+        function markAsDone(button) {
+            const taskItem = button.parentElement.parentElement;
+            taskItem.classList.add("completed");
+            const doneList = document.getElementById("completedTasks");
+            doneList.appendChild(taskItem);
+            button.remove();
+
+            // Update the task status in localStorage
+            updateTaskStatus(taskItem, true);
+        }
+
+        function deleteTask(button) {
+            const taskItem = button.parentElement.parentElement;
+            taskItem.remove();
+
+            // Delete the task from localStorage
+            deleteTaskFromStorage(taskItem);
+        }
+
+        // CRUD Operations with localStorage
+        function saveTask(task) {
+            const tasks = getTasksFromStorage();
+            tasks.push(task);
+            localStorage.setItem('tasks', JSON.stringify(tasks));
+        }
+
+        function getTasksFromStorage() {
+            return JSON.parse(localStorage.getItem('tasks')) || [];
+        }
+
+        function updateTaskStatus(taskItem, completed) {
+            const tasks = getTasksFromStorage();
+            const index = taskItemToIndex(taskItem, tasks);
+            if (index !== -1) {
+                tasks[index].completed = completed;
+                localStorage.setItem('tasks', JSON.stringify(tasks));
+            }
+        }
+
+        function deleteTaskFromStorage(taskItem) {
+            const tasks = getTasksFromStorage();
+            const index = taskItemToIndex(taskItem, tasks);
+            if (index !== -1) {
+                tasks.splice(index, 1);
+                localStorage.setItem('tasks', JSON.stringify(tasks));
+            }
+        }
+
+        function taskItemToIndex(taskItem, tasks) {
+            const taskText = taskItem.querySelector('span').textContent;
+            const taskDescription = taskItem.querySelector('p').textContent;
+            return tasks.findIndex(task => task.text === taskText && task.description === taskDescription);
+        }
+
+        // Load tasks from localStorage on page load
+        window.addEventListener('load', () => {
+            const tasks = getTasksFromStorage();
+            for (const task of tasks) {
+                const taskList = task.completed ? document.getElementById("completedTasks") : document.getElementById("remainingTasks");
+                const taskItem = document.createElement("li");
+                taskItem.className = "task";
+                taskItem.innerHTML = `
+                    <div>
+                        <span>${task.text}</span>
+                        <p>${task.description}</p>
+                    </div>
+                    <div>
+                        <button onclick="markAsDone(this)" class="btn btn-success">✓</button>
+                        <button onclick="deleteTask(this)" class="btn btn-danger">×</button>
+                    </div>
+                `;
+                taskList.appendChild(taskItem);
+
+                if (task.completed) {
+                    taskItem.classList.add("completed");
+                    taskItem.querySelector(".btn-success").remove();
+                }
+            }
+        });
+    </script>
+</body>
+
+</html>
